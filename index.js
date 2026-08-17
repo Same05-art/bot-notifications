@@ -33,7 +33,7 @@ const MODELS = {
   },
 
   "julieMym": {
-    name: "Juliefp",
+    name: "TaprofJulie",
     hubChannel: "1538987177319338104",
     newSubChannel: "1470229295791083683",
     paymentChannel: "1470229760360579154"
