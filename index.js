@@ -1,12 +1,12 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const express = require('express');
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // obligatoire
+    GatewayIntentBits.MessageContent,
   ],
 });
 
@@ -14,28 +14,34 @@ const app = express();
 app.use(express.json());
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION DES MODÈLES
 // ============================================
-const HUB_CHANNEL_ID = '1538350784197169352'; // Salon où arrive le webhook MyPuls
-
+// Pour ajouter un nouveau modèle, copie-colle un bloc et change les IDs
 const MODELS = {
   "alicelyd": {
     name: "Alicelyd",
-    newSubChannel: "1470220774815039553",
-    paymentChannel: "1470221301078560789"
-  }
-  // Tu ajouteras les autres modèles ici plus tard
+    hubChannel: "1538350784197169352",           // Salon hub (où arrive le webhook MyPuls)
+    newSubChannel: "1470220774815039553",        // Salon nouveaux abonnés
+    paymentChannel: "1470221301078560789"        // Salon paiements
+  },
+
+  // Exemple pour un futur modèle :
+  "julie": {
+     name: "Juliefp",
+     hubChannel: "1538894979798274120",
+     newSubChannel: "1470222620271050754",
+     paymentChannel: "1470223132827713632"
+   }
 };
 
-// Mémoire des messages déjà traités (anti-doublon)
+// Mémoire anti-doublon
 const processedMessages = new Set();
 
 // ============================================
-// Écoute des messages du salon hub
+// Écoute des messages des salons hub
 // ============================================
 client.on('messageCreate', async (message) => {
-  // On ne traite que les messages du salon hub qui viennent d'un webhook
-  if (message.channel.id !== HUB_CHANNEL_ID) return;
+  // On ignore tout ce qui n'est pas un webhook
   if (!message.webhookId) return;
 
   // Anti-doublon
@@ -44,13 +50,22 @@ client.on('messageCreate', async (message) => {
     return;
   }
   processedMessages.add(message.id);
-
-  // On nettoie la mémoire après 5 minutes
   setTimeout(() => processedMessages.delete(message.id), 5 * 60 * 1000);
 
-  console.log('Message reçu du hub MyPuls');
+  // On cherche le modèle qui correspond à ce salon hub
+  let model = null;
+  for (const key in MODELS) {
+    if (MODELS[key].hubChannel === message.channel.id) {
+      model = MODELS[key];
+      break;
+    }
+  }
+
+  // Si ce n'est pas un de nos salons hub → on ignore
+  if (!model) return;
+
+  console.log(`Message reçu du hub de ${model.name}`);
   console.log('Contenu :', message.content);
-  console.log('Embeds :', JSON.stringify(message.embeds, null, 2));
 
   const content = (message.content || '').toLowerCase();
   const embedText = message.embeds.map(e => {
@@ -60,25 +75,34 @@ client.on('messageCreate', async (message) => {
   const fullText = `${content} ${embedText}`;
 
   try {
-    const model = MODELS["alicelyd"];
-
     let channelId = null;
     let title = '';
 
-    if (fullText.includes('abonné') || fullText.includes('subscriber') || fullText.includes('new_subscriber') || fullText.includes('abonnement')) {
+    if (
+      fullText.includes('abonné') ||
+      fullText.includes('subscriber') ||
+      fullText.includes('new_subscriber') ||
+      fullText.includes('abonnement')
+    ) {
       channelId = model.newSubChannel;
       title = `🆕 Nouvel abonné — ${model.name}`;
-    } else if (fullText.includes('paiement') || fullText.includes('payment') || fullText.includes('payé') || fullText.includes('tip') || fullText.includes('purchase')) {
+    } else if (
+      fullText.includes('paiement') ||
+      fullText.includes('payment') ||
+      fullText.includes('payé') ||
+      fullText.includes('tip') ||
+      fullText.includes('purchase')
+    ) {
       channelId = model.paymentChannel;
       title = `💰 Paiement — ${model.name}`;
     } else {
-      console.log('→ Type d’événement non reconnu');
+      console.log(`[${model.name}] Type d'événement non reconnu`);
       return;
     }
 
     const channel = await client.channels.fetch(channelId);
     if (!channel) {
-      console.error('Salon introuvable');
+      console.error(`[${model.name}] Salon introuvable`);
       return;
     }
 
@@ -88,17 +112,10 @@ client.on('messageCreate', async (message) => {
       files: [...message.attachments.values()]
     });
 
-    console.log(`→ Message envoyé dans le salon : ${title}`);
+    console.log(`→ [${model.name}] Message envoyé : ${title}`);
   } catch (error) {
-    console.error('Erreur lors du renvoi :', error);
+    console.error(`[${model.name}] Erreur :`, error);
   }
-});
-
-// ============================================
-// Route webhook (optionnelle)
-// ============================================
-app.post('/webhook/:modelKey', async (req, res) => {
-  res.status(200).send('OK');
 });
 
 // ============================================
