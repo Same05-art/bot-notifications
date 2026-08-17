@@ -25,19 +25,19 @@ const MODELS = {
     paymentChannel: "1470221301078560789"        // Salon paiements
   },
 
-  // Exemple pour un futur modèle :
-  "julie": {
-     name: "Juliefp",
-     hubChannel: "1538894979798274120",
-     newSubChannel: "1470222620271050754",
-     paymentChannel: "1470223132827713632"
-   },
+  "julieof": {
+    name: "Juliefp",
+    hubChannel: "1538894979798274120",
+    newSubChannel: "1470222620271050754",
+    paymentChannel: "1470223132827713632"
+  },
+
   "julieMym": {
-     name: "Juliefp",
-     hubChannel: "1538987177319338104",
-     newSubChannel: "1470229295791083683",
-     paymentChannel: "1470229760360579154"
-   }
+    name: "Juliefp",
+    hubChannel: "1538987177319338104",
+    newSubChannel: "1470229295791083683",
+    paymentChannel: "1470229760360579154"
+  }
 };
 
 // Mémoire anti-doublon
