@@ -26,11 +26,17 @@ const MODELS = {
   },
 
   // Exemple pour un futur modèle :
-  "julie": {
+  "julieOF": {
      name: "Juliefp",
      hubChannel: "1538894979798274120",
      newSubChannel: "1470222620271050754",
      paymentChannel: "1470223132827713632"
+   }
+  "julieMym": {
+     name: "Juliefp",
+     hubChannel: "1538987177319338104",
+     newSubChannel: "1470229295791083683",
+     paymentChannel: "1470229760360579154"
    }
 };
 
