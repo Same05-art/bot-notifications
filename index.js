@@ -85,8 +85,11 @@ client.once('ready', () => {
   console.log(`Bot connecté en tant que ${client.user.tag}`);
 });
 
-client.login(process.env.DISCORD_TOKEN);
+console.log("Token présent ?", !!process.env.DISCORD_TOKEN);
+console.log("Longueur du token :", process.env.DISCORD_TOKEN ? process.env.DISCORD_TOKEN.length : 0);
+console.log("Début du token :", process.env.DISCORD_TOKEN ? process.env.DISCORD_TOKEN.substring(0, 10) : "AUCUN");
 
+client.login(process.env.DISCORD_TOKEN);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
