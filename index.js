@@ -6,7 +6,7 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // obligatoire pour lire le contenu des messages
+    GatewayIntentBits.MessageContent, // obligatoire
   ],
 });
 
@@ -27,6 +27,9 @@ const MODELS = {
   // Tu ajouteras les autres modèles ici plus tard
 };
 
+// Mémoire des messages déjà traités (anti-doublon)
+const processedMessages = new Set();
+
 // ============================================
 // Écoute des messages du salon hub
 // ============================================
@@ -35,11 +38,20 @@ client.on('messageCreate', async (message) => {
   if (message.channel.id !== HUB_CHANNEL_ID) return;
   if (!message.webhookId) return;
 
+  // Anti-doublon
+  if (processedMessages.has(message.id)) {
+    console.log('Message déjà traité, on ignore');
+    return;
+  }
+  processedMessages.add(message.id);
+
+  // On nettoie la mémoire après 5 minutes
+  setTimeout(() => processedMessages.delete(message.id), 5 * 60 * 1000);
+
   console.log('Message reçu du hub MyPuls');
   console.log('Contenu :', message.content);
   console.log('Embeds :', JSON.stringify(message.embeds, null, 2));
 
-  // On regarde le contenu + les embeds pour détecter le type
   const content = (message.content || '').toLowerCase();
   const embedText = message.embeds.map(e => {
     return `${e.title || ''} ${e.description || ''} ${(e.fields || []).map(f => `${f.name} ${f.value}`).join(' ')}`;
@@ -48,12 +60,10 @@ client.on('messageCreate', async (message) => {
   const fullText = `${content} ${embedText}`;
 
   try {
-    // Pour l'instant on considère qu'il n'y a qu'un modèle (alicelyd)
     const model = MODELS["alicelyd"];
 
     let channelId = null;
     let title = '';
-    let color = 0x57F287;
 
     if (fullText.includes('abonné') || fullText.includes('subscriber') || fullText.includes('new_subscriber') || fullText.includes('abonnement')) {
       channelId = model.newSubChannel;
@@ -61,7 +71,6 @@ client.on('messageCreate', async (message) => {
     } else if (fullText.includes('paiement') || fullText.includes('payment') || fullText.includes('payé') || fullText.includes('tip') || fullText.includes('purchase')) {
       channelId = model.paymentChannel;
       title = `💰 Paiement — ${model.name}`;
-      color = 0xFEE75C;
     } else {
       console.log('→ Type d’événement non reconnu');
       return;
@@ -73,7 +82,6 @@ client.on('messageCreate', async (message) => {
       return;
     }
 
-    // On renvoie le message original (contenu + embeds)
     await channel.send({
       content: message.content || null,
       embeds: message.embeds,
@@ -87,10 +95,10 @@ client.on('messageCreate', async (message) => {
 });
 
 // ============================================
-// (Optionnel) Ancienne route webhook (au cas où)
+// Route webhook (optionnelle)
 // ============================================
 app.post('/webhook/:modelKey', async (req, res) => {
-  res.status(200).send('OK'); // on laisse pour ne pas casser
+  res.status(200).send('OK');
 });
 
 // ============================================
