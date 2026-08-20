@@ -16,22 +16,19 @@ app.use(express.json());
 // ============================================
 // CONFIGURATION DES MODÈLES
 // ============================================
-// Pour ajouter un nouveau modèle, copie-colle un bloc et change les IDs
 const MODELS = {
   "alicelyd": {
     name: "Alicelyd",
-    hubChannel: "1538350784197169352",           // Salon hub (où arrive le webhook MyPuls)
-    newSubChannel: "1470220774815039553",        // Salon nouveaux abonnés
-    paymentChannel: "1470221301078560789"        // Salon paiements
+    hubChannel: "1538350784197169352",
+    newSubChannel: "1470220774815039553",
+    paymentChannel: "1470221301078560789"
   },
-
   "julieof": {
     name: "Juliefp",
     hubChannel: "1538894979798274120",
     newSubChannel: "1470222620271050754",
     paymentChannel: "1470223132827713632"
   },
-
   "julieMym": {
     name: "TaprofJulie",
     hubChannel: "1538987177319338104",
@@ -40,8 +37,8 @@ const MODELS = {
   }
 };
 
-// Mémoire anti-doublon
-const processedMessages = new Set();
+// Mémoire anti-doublon (basée sur le contenu)
+const processedMessages = new Map();
 
 // ============================================
 // Écoute des messages des salons hub
@@ -50,13 +47,24 @@ client.on('messageCreate', async (message) => {
   // On ignore tout ce qui n'est pas un webhook
   if (!message.webhookId) return;
 
-  // Anti-doublon
-  if (processedMessages.has(message.id)) {
-    console.log('Message déjà traité, on ignore');
-    return;
+  // === Anti-doublon amélioré ===
+  const contentKey = (message.content || '').slice(0, 180).trim();
+  const now = Date.now();
+
+  if (processedMessages.has(contentKey)) {
+    const lastTime = processedMessages.get(contentKey);
+    if (now - lastTime < 45 * 1000) { // ignore si même contenu dans les 45 dernières secondes
+      console.log('Message similaire déjà traité récemment → ignoré');
+      return;
+    }
   }
-  processedMessages.add(message.id);
-  setTimeout(() => processedMessages.delete(message.id), 5 * 60 * 1000);
+
+  processedMessages.set(contentKey, now);
+
+  // Nettoyage automatique après 5 minutes
+  setTimeout(() => {
+    processedMessages.delete(contentKey);
+  }, 5 * 60 * 1000);
 
   // On cherche le modèle qui correspond à ce salon hub
   let model = null;
